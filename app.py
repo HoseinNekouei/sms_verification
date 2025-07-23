@@ -38,30 +38,20 @@ def send_sms(number :str ,message :str):
 
 
 def import_database_from_excel(file_path):
+    conn = sqlite.connect(config.DATABASE_FILE_PATH)
+    cur = conn.cursor()
+
     # Read the original serial database Excel file
     try:
         df_serial = pd.read_excel(file_path, sheet_name=0)
         print("Original Serial Database:")
-        print(df_serial.head())
+        print(df_serial.head(5))
 
-        # Connect to the SQLite database
-        conn= sqlite.connect(config.DATABASE_FILE_PATH)
-        cursor = conn.cursor()
+        # Save the DataFrame to SQLite database
+        df_serial.to_sql('serials',conn, if_exists= 'replace', index= False)
+        cur.execute("SELECT COUNT(*) FROM serials")
+        num_serial_records= cur.fetchone()[0]
 
-        # drop the seials table if it exists
-        cursor.execute('DROP TABLE IF EXISTS serials')
-
-        # Create the serials table if it doesn't exist
-        cursor.execute("""
-                        CREATE TABLE IF NOT EXISTS serials (
-                            id INTEGER primary key autoincrement,
-                            ref TEXT NOT NULL,
-                            start_serial TEXT NOT NULL,
-                            end_serial TEXT NOT NULL,
-                            date DATE NOT NULL,
-                            serial_description TEXT NOT NULL
-                        );
-                    """)
     except FileNotFoundError as e:
         print(f'Could not find serial_database.xlsx: {e}')
 
@@ -72,17 +62,19 @@ def import_database_from_excel(file_path):
         print("Faulty Serial Database:")
         print(df_faulty.head())
 
-        # drop faulty table if it exists
-        cursor.execute('DROP TABLE IF EXISTS faulty_serials')
+        # Save the DataFrame to SQLite database
+        df_faulty.to_sql('faulty_serials', conn, if_exists= 'append', index= False)
+        cur.execute("SELECT COUNT(*) FROM FAULTY_SERIALS")
+        num_faulty_serials= cur.fetchone()[0]
 
-        # Create the Faulty table if it doesn't exist
-        cursor.execute("""
-                        CREATE TABLE IF NOT EXISTS faulty_serials (
-                            faulty TEXT NOT NULL
-                        );
-                    """)       
     except FileNotFoundError as e:
         print(f'Could not find faulty_serial_database.xlsx: {e}')
+
+    # return number of row inserting
+    return num_serial_records, num_faulty_serials
+     
+    # close the connection
+    conn.close()
 
 
 def check_serial():
@@ -92,5 +84,4 @@ def check_serial():
 
 if __name__ == '__main__':
     # check_serial()    
-    import_database_from_excel(file_path=r'data/serial_database.xlsx')
     app.run('127.0.0.1',5000,debug=True)
