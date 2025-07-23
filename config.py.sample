@@ -1,0 +1,5 @@
+# API_key= "put API key that you got from your  sms operator here! "
+# Or username & password
+
+# DATABASE_FILE_PATH = 'path to the file which is used by sqlite'
+
